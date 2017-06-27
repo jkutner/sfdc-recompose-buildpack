@@ -30,7 +30,5 @@ SFDC_RECOMPOSE_VERSION=${SFDC_RECOMPOSE_VERSION:-"0.0.9-SNAPSHOT"}
 echo "**** Downloading recomposer-${SFDC_RECOMPOSE_VERSION}.jar from s3..."
 ${AWS_CMD:?} s3 cp s3://${AWS_S3_BUCKET_NAME:?}/recompose-${SFDC_RECOMPOSE_VERSION}.jar recomposer.jar 2>&1
 
-heroku_bin_dir=$BUILD_DIR/.heroku/bin
-mkdir -p $heroku_bin_dir
-cp $OPT_DIR/recompose $heroku_bin_dir/recompose
-chmod +x ${heroku_bin_dir}/recompose
+cp ${OPT_DIR}/recompose ${BUILD_DIR}/recompose
+chmod +x ${BUILD_DIR}/recompose
