@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+# don't fail fast
+#set -eu
+
+# first argument on the command line is the process to start after
+# recomposision is complete
+cmd=${1}
+SFDC_CUSTOM=sfdc-custom.tar.gz
+
+echo "Invoke Java Recomposer"
+echo $JAVA_HOME
+echo `which java`
+java -jar recomposer.jar
+echo "Java Recomposer Completed"
+
+echo "Downloading sfdc customizations from s3..."
+${AWS_CMD:?} s3 cp s3://${AWS_S3_BUCKET_NAME:?}/${SFDC_CUSTOM:?} - | tar xzmv 2>&1
+
+echo "true" > $HOME/.recompose
+
+if [ -n "$cmd" ]; then
+  echo "--> cmd: ${cmd}"
+  exec bash ${cmd:?}
+fi
+
+echo "--> $0 exiting"
