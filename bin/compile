@@ -7,35 +7,24 @@ set -eu
 BP_DIR="$(cd "$(dirname "$0")" && pwd)"
 BUILD_DIR=$1
 CACHE_DIR=$2
-OPT_DIR=$BP_DIR/../opt/
 
-fetch_nginx_tarball() {
-    local version="1.9.7"
-    local tarball_file="nginx-$version.tgz"
-    local stack="cedar-14"
-    local nginx_tarball_url="https://s3-external-1.amazonaws.com/heroku-buildpack-ruby/nginx/$stack/nginx-$version-ngx_mruby.tgz"
-    local dest_path="$CACHE_DIR/$stack/$tarball_file"
+# Set up environment variables from Heroku config variables
+$BUILDPACK_STDLIB_URL="https://lang-common.s3.amazonaws.com/buildpack-stdlib/v7/stdlib.sh"
+source <(curl -s --retry 3 -L $BUILDPACK_STDLIB_URL)
+export_env $ENV_DIR
 
-    if [ -f "$dest_path" ]; then
-        echo -n "cat $dest_path"
-    else
-        echo -n "curl -L $nginx_tarball_url"
-    fi
-}
+AWS_CMD=$BUILD_DIR/vendor/awscli/bin/aws
 
-heroku_bin_dir=$BUILD_DIR/.heroku/bin
-mkdir -p $heroku_bin_dir
+# Validate environment variables
+[ -z "$AWS_ACCESS_KEY_ID" ] && echo " ! ERROR: missing AWS_ACCESS_KEY_ID config var" && exit 1
+[ -z "$AWS_SECRET_ACCESS_KEY" ] && echo " ! ERROR: missing AWS_SECRET_ACCESS_KEY config var" && exit 1
+[ -z "$AWS_S3_BUCKET_NAME" ] && echo " ! ERROR: missing AWS_S3_BUCKET_NAME config var" && exit 1
+[ ! -f $AWS_CMD ] && echo "ERROR: aws-cli is not installed" && exit 1
 
-nginx_dir=$BUILD_DIR/.nginx
-nginx_bin_dir=$nginx_dir/bin
-mkdir -p $nginx_bin_dir
+cd $BUILD_DIR
 
-$(fetch_nginx_tarball) | tar xzC $nginx_bin_dir
-cp $OPT_DIR/web $nginx_dir/bin/nginx-start
-chmod +x $nginx_dir/bin/nginx-start
-echo "-----> Installed nginx"
+SFDC_RECOMPOSE_VERSION=${SFDC_RECOMPOSE_VERSION:-"0.0.9-SNAPSHOT"}
 
-cp $OPT_DIR/recompose $heroku_bin_dir/recompose
-chmod +x ${heroku_bin_dir}/recompose
-
-cp $OPT_DIR/nginx.conf.erb $nginx_dir/
+############ Downloading recomposer.jar #######################################
+echo "**** Downloading recomposer-${SFDC_RECOMPOSE_VERSION}.jar from s3..."
+ ${AWS_CMD:?} s3 cp s3://${AWS_S3_BUCKET_NAME:?}/recompose-${SFDC_RECOMPOSE_VERSION}.jar recomposer.jar 2>&1

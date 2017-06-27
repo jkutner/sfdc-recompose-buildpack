@@ -1,11 +1,7 @@
 #!/usr/bin/env bash
 # bin/release <build-dir>
 
-if [ ! -f $BUILD_DIR/Procfile ]; then
-  cat <<EOF
+cat <<EOF
 ---
 config_vars:
-default_process_types:
-  web: .heroku/bin/recompose \$WEB_PROCESS_CMD
 EOF
-fi
